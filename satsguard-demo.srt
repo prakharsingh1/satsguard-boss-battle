@@ -1,0 +1,135 @@
+1
+00:00:00,000 --> 00:00:05,106
+A Bitcoin proposal can have a plausible fee and still pay the wrong person.
+
+2
+00:00:05,106 --> 00:00:10,212
+SatsGuard compares a partially signed Bitcoin transaction with the payment you meant to make.
+
+3
+00:00:10,212 --> 00:00:13,129
+This AI-assisted prototype was built for Prakhar Singh.
+
+4
+00:00:13,129 --> 00:00:17,611
+These are actual app captures using synthetic testnet fixtures.
+
+5
+00:00:17,611 --> 00:00:23,860
+The policy declares the network, recipients, exact satoshi amounts, allowed change addresses, and an absolute fee cap.
+
+6
+00:00:23,860 --> 00:00:27,903
+You can paste or load a base sixty-four or hex PSBT.
+
+7
+00:00:27,903 --> 00:00:30,843
+Change is accepted only when you declare it.
+
+8
+00:00:30,843 --> 00:00:36,086
+The app does not guess which outputs belong to your wallet.
+
+9
+00:00:36,086 --> 00:00:40,674
+In the recipient-swap example, the claimed fee is only one thousand sats.
+
+10
+00:00:40,674 --> 00:00:44,116
+But fifty thousand sats go to an undeclared destination.
+
+11
+00:00:44,116 --> 00:00:49,851
+SatsGuard marks that output and reports a payment amount mismatch: the intended recipient receives zero.
+
+12
+00:00:49,851 --> 00:00:56,786
+The allocation map makes this difference visible instead of burying it in raw transaction data.
+
+13
+00:00:56,786 --> 00:00:58,678
+Now compare the matched example.
+
+14
+00:00:58,678 --> 00:01:03,216
+The same supplied one hundred thousand sats become fifty thousand for the
+
+15
+00:01:03,216 --> 00:01:07,377
+declared payment, forty-nine thousand for declared change, and a one-thousand-sat fee.
+
+16
+00:01:07,377 --> 00:01:10,781
+No declared checks failed means the policy comparison passed.
+
+17
+00:01:10,781 --> 00:01:15,763
+It does not mean the transaction is safe to sign.
+
+18
+00:01:15,763 --> 00:01:18,843
+The fee-spike fixture still pays the expected recipient.
+
+19
+00:01:18,843 --> 00:01:24,619
+But its supplied input and output values imply a ten-thousand-sat fee, above the two-thousand-sat cap.
+
+20
+00:01:24,619 --> 00:01:26,929
+The report fails the fee check.
+
+21
+00:01:26,929 --> 00:01:35,060
+Accounting uses whole satoshis and supplied PSBT values, with the source of those values stated in the report.
+
+22
+00:01:35,060 --> 00:01:40,260
+Remove the supplied input value and the recipients still match, but the fee becomes unknown.
+
+23
+00:01:40,260 --> 00:01:43,727
+The app requests review because it cannot check the cap.
+
+24
+00:01:43,727 --> 00:01:47,888
+This example was also rerun with the browser network disabled after loading.
+
+25
+00:01:47,888 --> 00:01:52,901
+Analysis stays local and makes no chain lookup or payload upload.
+
+26
+00:01:52,901 --> 00:01:56,541
+The command-line interface runs the same deterministic engine.
+
+27
+00:01:56,541 --> 00:02:03,367
+Here is an actual recipient-swap run: blocked status, a one-thousand-sat fee, and one unexpected output.
+
+28
+00:02:03,367 --> 00:02:08,827
+The JSON export excludes addresses, scripts, outpoints, public keys, and raw payloads.
+
+29
+00:02:08,827 --> 00:02:14,288
+Amounts and transaction shape remain, so redaction is not an anonymity guarantee.
+
+30
+00:02:14,288 --> 00:02:17,763
+No AI model is integrated.
+
+31
+00:02:17,763 --> 00:02:24,381
+SatsGuard is a small PSBT version-zero preflight prototype, not a wallet or an audited security system.
+
+32
+00:02:24,381 --> 00:02:28,517
+It does not verify signatures, ownership, spendability, or chain state.
+
+33
+00:02:28,517 --> 00:02:31,826
+It never asks for keys, signs, or broadcasts.
+
+34
+00:02:31,826 --> 00:02:39,644
+The goal is a reviewable comparison between declared intent and the proposal in front of you.
