@@ -13,4 +13,5 @@ const output = html.replace(script[0], () => '<script type="module">' + js.repla
 await mkdir('publication', { recursive: true });
 await writeFile('publication/index.html', output);
 await copyFile('public/guide.html', 'publication/guide.html');
+await copyFile('public/demo.html', 'publication/demo.html');
 console.log('Standalone publication/index.html prepared; application needs no asset requests.');
