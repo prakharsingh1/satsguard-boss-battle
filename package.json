@@ -9,12 +9,13 @@
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test tests/*.test.js",
-    "inspect": "node scripts/cli.mjs"
+    "inspect": "node scripts/cli.mjs",
+    "standalone": "npm run build && node scripts/standalone.mjs"
   },
   "dependencies": {
     "bitcoinjs-lib": "7.0.1"
   },
   "devDependencies": {
-    "vite": "7.1.9"
+    "vite": "7.3.6"
   }
 }
