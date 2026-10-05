@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#171c19" />
+    <meta name="description" content="Compare a Bitcoin PSBT with your declared payment intent, locally. Offline preflight checks and redacted reports for humans and agents." />
+    <title>SatsGuard · Bitcoin intent preflight</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#"><svg viewBox="0 0 32 36" aria-hidden="true"><path d="M16 2 29 7v11c0 8-13 15-13 15S3 26 3 18V7Z"/><path d="m10 17 4 4 8-9"/></svg><span>SatsGuard</span><span class="version">v0.1</span></a>
+      <div class="header-right"><span class="local-pill"><i></i> Runs in your browser</span><a href="/guide.html">How it works ↗</a></div>
+    </header>
+    <main>
+      <div class="page-heading"><div><p class="eyebrow">BITCOIN / INTENT PREFLIGHT</p><h1>Know what you’re approving.</h1><p class="intro">Compare a PSBT with the payment you meant to make.</p></div><div class="privacy-note"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Local analysis.<br>Nothing you paste is uploaded.</span></div></div>
+      <div class="workspace">
+        <section class="input-panel" aria-label="Transaction and declared intent">
+          <div class="panel-heading"><h2><span class="step">01</span> Set up a check</h2><button id="clear" class="text-button" type="button">Clear</button></div>
+          <label for="scenario">Try a synthetic testnet example</label>
+          <select id="scenario"><option value="">Choose an example</option></select>
+          <p id="scenario-description" class="hint">Examples contain invented transaction data, not real funds.</p>
+          <div class="field-title"><label for="psbt">PSBT <span class="light">Base64 or hex · v0</span></label><label class="file-button" for="psbt-file">Load file ↗</label><input type="file" id="psbt-file" accept=".psbt,.txt" hidden></div>
+          <textarea id="psbt" rows="3" spellcheck="false" placeholder="Paste a PSBT to inspect…"></textarea>
+          <div class="intent-heading"><h3>Declared intent</h3><span class="tiny-pill">YOU SET THE RULES</span></div>
+          <div class="inline-fields"><div><label for="network">Network</label><select id="network"><option value="testnet">Testnet / signet</option><option value="bitcoin">Bitcoin mainnet</option></select></div><div><label for="max-fee">Maximum fee <span class="light">sats</span></label><input id="max-fee" inputmode="numeric" value="2000" autocomplete="off"></div></div>
+          <div class="field-title"><label>Expected payments</label><button id="add-payment" class="text-button" type="button">+ Add</button></div>
+          <div id="payments"></div>
+          <label for="change-addresses">Allowed change addresses</label>
+          <textarea id="change-addresses" rows="2" spellcheck="false" placeholder="One address per line, or leave empty"></textarea>
+          <p class="hint">Every output must match a payment or an address you explicitly allow for change.</p>
+          <button id="analyze" class="primary-button" type="button">Run preflight <span>→</span></button>
+          <p id="input-error" role="alert" class="input-error" hidden></p>
+          <details class="json-intent"><summary>Agent workflow · paste intent JSON</summary><textarea id="intent-json" rows="7" spellcheck="false" aria-label="Payment intent JSON" placeholder='{"network":"testnet","payments":[],"changeAddresses":[],"maxFeeSats":"2000"}'></textarea><button id="apply-json" class="secondary-button" type="button">Apply JSON to form</button><p class="hint">Same engine, same rules. Use the CLI in the source package for automation.</p></details>
+        </section>
+        <section class="results-panel" aria-label="Preflight result" aria-live="polite">
+          <div id="stale-banner" class="stale-banner" hidden>Inputs changed. Run preflight again to update this report.</div>
+          <div class="report-header"><div><p class="eyebrow">PREFLIGHT REPORT</p><h2 id="result-title">Ready to inspect</h2><p id="result-detail">Choose an example or paste a PSBT and declare your intent.</p></div><div id="status-symbol" class="status-symbol">◎</div></div>
+          <div class="stats"><div><span>Inputs supplied</span><strong id="stat-input">—</strong></div><div><span>Total outputs</span><strong id="stat-output">—</strong></div><div><span>Computed fee</span><strong id="stat-fee">—</strong></div></div>
+          <div class="report-section-heading"><h3>Where the sats go</h3><span id="network-label" class="tiny-pill">NO REPORT YET</span></div>
+          <div id="flow" class="flow"><div class="empty-state"><span>↳</span><p>The output map appears here.<br>Nothing is inferred as your change.</p></div></div>
+          <div class="legend"><span><i class="dot payment"></i> Expected payment</span><span><i class="dot change"></i> Declared change</span><span><i class="dot unexpected"></i> Unexpected output</span></div>
+          <div class="report-section-heading findings-heading"><h3>Checks & observations</h3><span id="finding-count" class="light">—</span></div>
+          <div id="findings"><p class="hint empty-findings">Intent, fee and metadata checks will appear here.</p></div>
+          <div class="report-footer"><button id="export" class="secondary-button" disabled type="button">↓ Export redacted JSON</button><button id="copy-intent" class="text-button" type="button">Copy intent JSON</button></div>
+          <p class="report-limit">A preflight is not approval to sign. Input values are PSBT claims. This tool does not verify ownership, signatures, spendability or chain state.</p>
+        </section>
+      </div>
+      <footer class="bottom"><span>Built for BOSS Battle 2026 · AI-assisted, open source prototype</span><span>No keys. No signing. No broadcasting.</span></footer>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
