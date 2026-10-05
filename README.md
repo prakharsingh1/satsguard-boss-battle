@@ -16,6 +16,8 @@ npm run dev
 
 Open the localhost URL printed by Vite. Production build: `npm run build`. The standalone version can be opened directly from `publication/index.html` after `npm run standalone`; `publication/guide.html` is its field guide.
 
+The publication package includes the standalone app, guide, captioned demo, source ZIP and actual Git history bundle. Open its `index.html` directly. To run the CLI or tests, unpack `satsguard-source.zip` and run the commands above from the extracted `satsguard` directory. The source documentation is included in that ZIP.
+
 ## Four reproducible examples
 
 All examples contain invented testnet outpoints and fixed public-key hashes. They do not claim to be spendable transactions.
@@ -81,5 +83,6 @@ New UI, policy engine, fixtures, tests and documentation were built on October 5
 
 Protocol parsing is reused from **bitcoinjs-lib 7.0.1** (MIT). Build tooling: **Vite 7.3.6** (MIT). Transitive dependencies retain their own licenses. Primary references: [BIP174](https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki), [BIP371](https://github.com/bitcoin/bips/blob/master/bip-0371.mediawiki), and [bitcoinjs-lib](https://github.com/bitcoinjs/bitcoinjs-lib).
 
-This is a small, reviewable prototype. It has not been professionally audited or used to process real funds.
+SatsGuard's original source is available under the MIT license in `LICENSE`.
 
+This is a small, reviewable prototype. It has not been professionally audited or used to process real funds.
