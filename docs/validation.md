@@ -38,3 +38,10 @@ An isolated copy preserved the original worker's files while completing release 
 A separate focused review found no actionable issue within the documented scope. Eight additional synthetic checks covered canonical witness UTXO script lengths at the 252/253 and 65,535/65,536 boundaries, empty and Unicode proof-of-reserves commitments with presence warnings and no raw-value export, and canonical previous transactions with extended script/witness lengths and exact fee accounting. UI escaping and stale/error report-export guards were also inspected.
 
 The supplied demo was inspected with ffprobe: H.264 video at 1920 × 1080, AAC audio, duration 159.643813 seconds. No real funds, keys, transactions, signing, broadcasting or chain lookups were involved. Release publication and Devfolio submission are separate steps; this document does not claim a submission receipt.
+
+
+## Current standalone app — October 6, 2026 UTC
+
+Fresh isolated headless Chromium QA opened the current `demo/index.html` with the browser context offline throughout. All four synthetic examples produced their expected results. The downloaded JSON report was checked for redaction; stale and malformed input disabled export, malformed input cleared old results, and changing the matched example's fee cap to 500 sats produced a blocked result. The adjacent guide opened locally. At a 390-pixel viewport, document and scroll widths were both 390 pixels. No HTTP requests or runtime errors occurred.
+
+The tested standalone HTML SHA-256 is `4ccb4cbde04c3de409f27ff68355ead9bbb8cf4c53f23c5fb55e34ddd8a53769`. It contains the current v0.2 CodeStorm branding, parser fixes and proof-of-reserves presence/redaction checks. Its JavaScript, styles and icon are embedded; the repository source archive includes this prebuilt app and guide for evaluation without installation or a build. Dependency notices are included alongside the app. The current MP4 remains a prepared local artifact, and the separate CodeStorm release remains unpublished.

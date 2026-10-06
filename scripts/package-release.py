@@ -16,6 +16,7 @@ SOURCE_FILES = (
     "package-lock.json", "vite.config.js", "docs/demo-script.md",
     "docs/protocol-notes.md", "docs/submission.json", "docs/validation.md",
     "docs/offline-release.md", "demo/index.html", "demo/guide.html",
+    "demo/THIRD-PARTY-LICENSES.txt",
     "public/demo.html", "public/favicon.svg",
     "public/guide.html", "scripts/cli.mjs", "scripts/standalone.mjs",
     "scripts/package-release.py", "src/engine.js", "src/fixtures.js",

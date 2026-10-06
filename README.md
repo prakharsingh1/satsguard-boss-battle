@@ -14,7 +14,7 @@ npm test
 npm run dev
 ```
 
-For the prebuilt current v0.2 app, download this repository’s source ZIP, extract it and open `demo/index.html`. No app installation or build is required; its JavaScript, CSS and icon are embedded. `demo/guide.html` is included beside it. The raw HTML download is served as text: save it as `index.html` before opening locally.
+For the prebuilt current v0.2 app, download this repository’s source ZIP, extract it and open `demo/index.html`. No app installation or build is required; its JavaScript, CSS and icon are embedded. `demo/guide.html` and dependency license notices in `demo/THIRD-PARTY-LICENSES.txt` are included beside it. The raw HTML download is served as text: save it as `index.html` before opening locally.
 
 For source development, open the localhost URL printed by Vite. Production build: `npm run build`. To regenerate the standalone app, run `npm run standalone`; this refreshes `demo/index.html` and `demo/guide.html` as well as the local `publication` copies. The commands above reproduce the source tests and CLI.
 
