@@ -11,12 +11,15 @@ checks. It is not a wallet, signer, consensus validator, or security audit.
 - [bip174 parser source](https://github.com/bitcoinjs/bip174/blob/master/ts_src/lib/parser/fromBuffer.ts): upstream parser behavior. Its parsing success alone does not establish full input consumption or enforce a zero PSBT global version.
 - [BIP 371: Taproot PSBT fields](https://github.com/bitcoin/bips/blob/master/bip-0371.mediawiki): Taproot signature and derivation metadata.
 - [BIP 341: Taproot signature hashing](https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki): SIGHASH_DEFAULT and the allowed Taproot signature hash types.
+- [BIP 127: Proof-of-reserves PSBT extension](https://github.com/bitcoin/bips/blob/master/bip-0127.mediawiki): the known free-form proof-of-reserves commitment field.
 
 ## Intended checks
 
 1. Accept bounded hex or base64 PSBT data. Reject malformed encodings, truncated
-   records, duplicate keys, nonminimal CompactSize encodings, trailing bytes,
-   missing required transaction fields, and unsupported PSBT versions.
+   records, duplicate keys, nonminimal CompactSize encodings in map framing,
+   unsigned transaction serialization and witness UTXO script lengths, trailing
+   bytes, missing required transaction fields, and unsupported PSBT versions.
+   Opaque metadata values and Taproot policy data are not fully format-validated.
 2. Inspect PSBT v0 only. A missing global version means zero; an explicit version
    must be exactly four bytes and decode to zero. `Psbt.version` is the Bitcoin
    transaction version, not the PSBT format version.
@@ -29,9 +32,10 @@ checks. It is not a wallet, signer, consensus validator, or security audit.
    undeclared outputs. Script-only or data outputs require explicit handling; an
    address decoder failure does not make an output harmless.
 5. For supplied non-witness UTXOs, verify the parent transaction ID matches the
-   input outpoint and the output index exists. If both UTXO forms are supplied,
-   require the same output value and script. Missing or invalid input data must
-   not be counted as zero.
+   input outpoint and the output index exists. Require the supplied previous
+   transaction bytes to match their canonical serialization. If both UTXO forms
+   are supplied, require the same output value and script. Missing or invalid
+   input data must not be counted as zero.
 6. Compute a fee only when every input amount is available and consistent. Label
    it as a fee computed from supplied UTXO data. Detect negative fee accounting
    and a declared absolute fee ceiling breach. Do not present an unsigned
@@ -41,10 +45,11 @@ checks. It is not a wallet, signer, consensus validator, or security audit.
    modes; this implementation warns that their validity and coverage are not
    verified rather than decoding those signatures. An omitted sighash declaration
    is not proof that all existing or future signatures commit to all outputs.
-8. Count privacy-sensitive derivation, extended-public-key, and unknown or
-   proprietary metadata without exporting their raw values. A redacted report
-   must also omit raw PSBT data, transaction IDs, addresses, scripts, public keys,
-   preimages, fingerprints, derivation paths, and free-form metadata values.
+8. Count privacy-sensitive derivation, extended-public-key, proof-of-reserves
+   commitment, and unknown or proprietary metadata without exporting their raw
+   values. A redacted report must also omit raw PSBT data, transaction IDs,
+   addresses, scripts, public keys, preimages, fingerprints, derivation paths,
+   and free-form metadata values.
 
 ## Limits that must remain visible
 
@@ -85,8 +90,11 @@ what was actually exercised:
 | Nondefault sighash declaration | Visible sighash warning; no broad signature guarantee |
 | Partial signature or finalized input present | Signature validity/coverage warning, including when declared sighash is absent |
 | Unknown/proprietary metadata and derivation fields | Metadata presence warning; redacted export contains no raw values |
+| Known proof-of-reserves commitment, including an empty value | Count by field presence, warn about free-form identifying data, and exclude its value from exports |
 | PSBT v2, malformed explicit version, duplicated key | Explicit unsupported/invalid parse result |
-| Trailing bytes, truncated value, nonminimal CompactSize | Invalid framing result |
+| Trailing bytes, truncated value, nonminimal map/unsigned-transaction/witness-UTXO CompactSize | Invalid framing result |
+| Noncanonical supplied previous transaction | Failed input accounting; total input and fee remain unknown |
+| Valid reordered maps and canonical previous transaction with witness data | Continue to accept these permitted representations |
 
 ## Implementation review status
 
@@ -96,11 +104,20 @@ allowlist export implemented. Two metadata-counting issues were corrected: the
 known version field is excluded only in the global map, and an explicit zero
 sighash declaration is counted by field presence rather than truthiness.
 
-The reviewer ran `npm test`: all 19 repository tests passed at the time of this
-review. Additional in-memory synthetic checks exercised split-recipient excess,
-partial missing input values, explicit Taproot DEFAULT decoded from a raw map,
-duplicate global keys, an undeclared OP_RETURN output, finalized-signature
-warnings, and exclusion of actual derivation and proprietary field values from
-redacted JSON. These checks passed. No real keys, real UTXOs, signatures,
-transactions, or chain connections were used. This is a focused development
-review, not an independent security audit.
+The October 6, 2026 UTC review reproduced two gaps in the original 24-test build.
+The dependency accepted nonminimal CompactSize fields inside unsigned transactions
+and witness UTXO values, normalizing them when reserialized. It also decoded the
+known `porCommitment` field without SatsGuard warning about its presence. The
+updated engine rejects noncanonical unsigned transaction bytes and nonminimal
+witness UTXO script lengths, excludes noncanonical previous transaction claims
+from input/fee accounting, and counts/warns about proof-of-reserves commitments.
+Commitment contents remain local and are excluded from redacted JSON.
+
+The reviewer ran `npm test` on the updated build: all 30 repository tests passed.
+Six added regressions cover nonminimal inner transaction counts and script lengths,
+witness UTXO script lengths, noncanonical previous transactions, permitted map
+ordering, canonical previous transactions with witness data, and commitment
+presence/redaction. These tests use synthetic data and verify that rejection does
+not confuse map ordering with transaction serialization. No real keys, real UTXOs,
+signatures, transactions, or chain connections were used. This is a focused
+development review, not an independent security audit.

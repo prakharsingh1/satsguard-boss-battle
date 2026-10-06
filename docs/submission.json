@@ -3,26 +3,28 @@
   "tagline": "Offline Bitcoin PSBT intent checks, with a redacted evidence report.",
   "builder": "Prakhar Singh",
   "account": "whyprakhar",
-  "draftUrl": "https://devfolio.co/projects/satsguard-dc9b/update",
-  "eventUrl": "https://boss-battle.devfolio.co/dashboard",
-  "track": "Cypherpunk",
-  "trackSaveStatus": "Checkbox selected and Save clicked, but no track chip visible; must verify before publish.",
+  "draftUrl": "https://devfolio.co/projects/satsguard-d48e/update",
+  "eventUrl": "https://codestorm-futureforge.devfolio.co/dashboard",
+  "track": "Cybersecurity tools",
+  "platform": "Web",
   "technologies": [
     "JavaScript",
     "CSS",
     "HTML",
     "Node.js",
-    "bitcoinjs-lib 7.0.1",
-    "Vite 7.3.6",
-    "BIP174"
+    "bitcoinjs-lib",
+    "Vite"
   ],
-  "platform": "Web",
-  "problem": "## The proposal should match the promise\nA Bitcoin PSBT can contain the right-looking fee while sending funds to an unintended script. Uploading it to an explorer or remote decoder also reveals transaction and wallet metadata.\n\nSatsGuard is a local, read-only preflight for humans and agent tooling. Paste a real BIP174 PSBT v0 (base64 or hex), declare each recipient and exact satoshi amount, explicitly allow change addresses, and set an absolute fee cap. The shared browser/CLI engine compares decoded output scripts and aggregated payment totals, shows where every output goes, and flags undeclared destinations, payment mismatches, excessive or unknown supplied fees, and privacy metadata.\n\nThe redacted JSON report excludes addresses, scripts, outpoints, public keys, derivation values and the raw PSBT. Amounts and transaction shape remain. No accounts, remote APIs, analytics, keys, signing or broadcasting are used by the app.\n\nFour synthetic testnet scenarios reproduce a recipient swap, matched intent, a fee spike, and missing input values. The core has 24 passing regression tests; actual Edge QA includes offline operation after load and a mobile layout.\n\n**Limits:** Input values are PSBT claims, not chain-verified balances. Change ownership, signatures, spending scripts, spendability and chain state are unverified. PSBT v2 and exact final fee-rate calculation are unsupported. A result is not approval to sign.\n\n**Built for BOSS Battle on Oct 5, 2026 with OpenAI Codex AI assistance.** Original policy engine/UI/tests/fixtures; bitcoinjs-lib 7.0.1 handles protocol parsing. Cypherpunk track: keep sensitive proposals local and make metadata exposure visible.",
-  "challenges": "The hardest part was avoiding a reassuring report from incomplete data. If even one input lacks a supplied UTXO amount, the fee is unknown and the cap cannot pass. Conflicting witness/non-witness claims are blocked; supplied previous transactions must match the input transaction hash and output index.\n\nProtocol parsing alone was insufficient for this narrow contract: strict envelope checks reject trailing bytes, malformed lengths and unsupported PSBT versions. Tests keep Bitcoin transaction version 2 distinct from PSBT version 2.\n\nAddress text and output position cannot establish intent or change ownership. SatsGuard compares decoded scripts, aggregates repeated recipients, and accepts change only from an explicit allowlist. Exact integer satoshi arithmetic is shared with the CLI.\n\nA separate review found two metadata-counting bugs; both were corrected and covered by regressions. Redaction uses an export allowlist, and edited form inputs disable stale report exports. These are tested prototype checks, not a professional security audit.",
-  "publicationProposed": {
-    "repository": "https://github.com/prakharsingh1/satsguard-boss-battle",
-    "demo": "https://prakharsingh1.github.io/satsguard-boss-battle/",
-    "license": "MIT",
-    "status": "approved-awaiting-publication"
-  }
+  "problem": "## Compare the proposal with the promise\nA Bitcoin PSBT can show a plausible fee while paying an unintended recipient. Sharing it with a remote decoder also exposes transaction and wallet metadata.\n\nSatsGuard is a local, read-only PSBT v0 intent inspector. Declare recipients and exact satoshi amounts, explicitly allow change addresses, and set an absolute fee cap. Paste or load a base64 or hex proposal. The browser and CLI share a deterministic engine that compares output scripts and aggregated payment totals, maps every output, and flags unexpected destinations, payment mismatches, excessive or unknown supplied fees, and metadata exposure.\n\nA redacted JSON report excludes addresses, scripts, outpoints, public keys, derivation values and the raw PSBT. Amounts and transaction shape remain, so redaction is not an anonymity guarantee. Inspection uses no accounts, remote APIs, analytics, keys, signing or broadcasting.\n\nFour synthetic testnet examples show recipient substitution, matching intent, a fee spike and missing input values. All 30 regression tests pass, including canonical encoding and proof-of-reserves metadata checks. The complete offline app requires no installation: download the release ZIP, extract the folder and open index.html. The release also includes the source, guide and factual 2m40s captioned demo.\n\n**Limits:** Input values are supplied PSBT claims, not chain-verified balances. Change ownership, signatures, spendability, chain state, Taproot spending policy and exact final fee rates are unverified. PSBT v2 is unsupported. A passing comparison is not approval to sign.\n\n**Origin and assistance:** The full original prototype was developed on October 5, 2026 while preparing for BOSS Battle, but was never submitted there. This CodeStorm entry reuses that work with October 6 parser/metadata fixes, fresh verification and documentation. Development falls within CodeStorm's August 1–October 15 window. OpenAI Codex generated and reviewed code on Prakhar Singh's behalf; there is no AI model integrated into the product. The demo reuses actual October 5 app captures and freshly rerun CLI output, with synthetic narration. Bitcoinjs-lib provides protocol parsing; original source is MIT licensed.",
+  "challenges": "A reassuring report from incomplete accounting was the main risk. One missing input value makes the total input and fee unknown, so the fee cap cannot pass. Supplied previous transactions must match the claimed outpoint, and witness/non-witness UTXO claims must agree.\n\nDuring the CodeStorm audit, the dependency accepted nonminimal CompactSize fields inside unsigned transactions and witness UTXO values, then normalized them on serialization. The engine now rejects these representations and excludes noncanonical previous transaction claims from accounting. Regression tests also ensure valid reordered PSBT maps and canonical previous transactions with witness data remain accepted.\n\nA known free-form proof-of-reserves commitment field was parsed without a privacy warning. It is now counted by presence, warned about and excluded from exports, including empty values.\n\nThe deployed GitHub Pages path inherits the account's existing custom domain and returns a Railway 404. We preserved that domain and prepared a complete offline download for a versioned release in the existing GitHub repo instead. This is a downloadable prototype and demo, not a claim of live hosting or an audited wallet.",
+  "links": {
+    "source": "https://github.com/prakharsingh1/satsguard-boss-battle",
+    "release": "https://github.com/prakharsingh1/satsguard-boss-battle/releases/tag/v0.2.0-codestorm"
+  },
+  "status": "Prepared locally; GitHub release publication and verification pending. Final portal validation and submission receipt required.",
+  "rulesSources": [
+    "https://codestorm-futureforge.devfolio.co/",
+    "https://codestorm-futureforge.devfolio.co/schedule",
+    "https://devfolio.co/code-of-conduct"
+  ]
 }

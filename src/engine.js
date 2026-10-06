@@ -92,9 +92,10 @@ function decodePayload(payload) {
 }
 
 /*
- * Envelope validation only: bitcoinjs-lib parses all PSBT fields and transactions.
- * This gate rejects non-minimal length encodings and trailing data tolerated by
- * the library, and reads the declared PSBT version before v0-only parsing.
+ * bitcoinjs-lib parses PSBT fields and transactions. This gate rejects
+ * non-minimal map and witness-UTXO lengths and trailing data tolerated by the
+ * library, and reads the declared PSBT version before v0-only parsing.
+ * Parsed transaction values are also compared with their canonical encoding.
  */
 function readCompactSize(bytes, position, end = bytes.length) {
   if (position >= end) fail('INVALID_PSBT', 'PSBT is truncated.');
@@ -111,18 +112,19 @@ function readCompactSize(bytes, position, end = bytes.length) {
   return { value: Number(value), next: position + count };
 }
 
-function scanMap(bytes, start, global = false) {
+function scanMap(bytes, start, scope) {
   let position = start;
   let version = 0;
   let versionSeen = false;
+  let unsignedTransaction;
   while (true) {
     const keyLength = readCompactSize(bytes, position);
     position = keyLength.next;
-    if (keyLength.value === 0) return { next: position, version };
+    if (keyLength.value === 0) return { next: position, version, unsignedTransaction };
     const keyEnd = position + keyLength.value;
     if (keyEnd > bytes.length) fail('INVALID_PSBT', 'PSBT has a truncated map key.');
     const type = readCompactSize(bytes, position, keyEnd);
-    const exactVersionKey = global && type.value === 0xfb;
+    const exactVersionKey = scope === 'global' && type.value === 0xfb;
     if (exactVersionKey && (keyLength.value !== 1 || versionSeen)) fail('INVALID_PSBT', 'PSBT version field must have one unique byte key.');
     position = keyEnd;
     const valueLength = readCompactSize(bytes, position);
@@ -133,19 +135,31 @@ function scanMap(bytes, start, global = false) {
       version = new DataView(bytes.buffer, bytes.byteOffset + position, 4).getUint32(0, true);
       versionSeen = true;
     }
+    if (scope === 'global' && type.value === 0 && keyLength.value === 1) {
+      unsignedTransaction = bytes.subarray(position, position + valueLength.value);
+    }
+    if (scope === 'input' && type.value === 1 && keyLength.value === 1) {
+      const valueEnd = position + valueLength.value;
+      const scriptLength = readCompactSize(bytes, position + 8, valueEnd);
+      if (scriptLength.next + scriptLength.value !== valueEnd) fail('INVALID_PSBT', 'Witness UTXO script length does not match its value.');
+    }
     position += valueLength.value;
   }
 }
 
 function parsePsbt(payload, network) {
   const bytes = decodePayload(payload);
-  const global = scanMap(bytes, MAGIC.length, true);
+  const global = scanMap(bytes, MAGIC.length, 'global');
   if (global.version !== 0) fail('UNSUPPORTED_PSBT_VERSION', `PSBT version ${global.version} is unsupported. This inspector supports BIP174 PSBT version 0 only.`);
   let psbt;
   try { psbt = Psbt.fromBuffer(bytes, { network }); }
   catch { fail('INVALID_PSBT', 'PSBT version 0 could not be parsed. Check that it contains a valid unsigned transaction and well-formed maps.'); }
+  if (!global.unsignedTransaction || !equalBytes(global.unsignedTransaction, psbt.data.globalMap.unsignedTx.toBuffer())) {
+    fail('INVALID_PSBT', 'The unsigned transaction uses a non-canonical serialization.');
+  }
   let position = global.next;
-  for (let i = 0; i < psbt.inputCount + psbt.txOutputs.length; i++) position = scanMap(bytes, position).next;
+  for (let i = 0; i < psbt.inputCount; i++) position = scanMap(bytes, position, 'input').next;
+  for (let i = 0; i < psbt.txOutputs.length; i++) position = scanMap(bytes, position, 'output').next;
   if (position !== bytes.length) fail('INVALID_PSBT', 'PSBT contains trailing bytes or unexpected maps.');
   return psbt;
 }
@@ -174,11 +188,13 @@ function inspectMetadata(psbt, addFinding) {
     signatureFieldCount: ['partialSig', 'tapKeySig', 'tapScriptSig', 'finalScriptSig', 'finalScriptWitness'].reduce((total, key) => total + count(key), 0),
     taprootFieldCount: ['tapInternalKey', 'tapMerkleRoot', 'tapLeafScript', 'tapBip32Derivation', 'tapTree', 'tapKeySig', 'tapScriptSig'].reduce((total, key) => total + count(key), 0),
     explicitSighashCount: count('sighashType'),
+    proofOfReservesCommitmentCount: count('porCommitment'),
   };
   if (metadata.globalXpubCount) addFinding('XPUB_EXPOSURE', 'warn', 'Global extended public keys are present and may reveal related wallet activity.');
   if (metadata.bip32DerivationCount || metadata.taprootDerivationCount) addFinding('DERIVATION_EXPOSURE', 'warn', 'Key derivation metadata is present and can link this proposal to a wallet.');
   if (metadata.proprietaryFieldCount) addFinding('PROPRIETARY_METADATA', 'warn', 'Proprietary metadata is present; its contents and privacy implications are not interpreted.');
   if (metadata.unknownFieldCount) addFinding('UNKNOWN_METADATA', 'warn', 'Unknown PSBT fields are present and are not interpreted by this inspector.');
+  if (metadata.proofOfReservesCommitmentCount) addFinding('POR_COMMITMENT_METADATA', 'warn', 'Proof-of-reserves commitments are present and may contain identifying free-form messages. Their statements are not verified.');
   if (metadata.signatureFieldCount) addFinding('SIGNATURES_NOT_VERIFIED', 'warn', 'Signature or finalization fields are present. Cryptographic validity, coverage, and final transaction behavior are not verified.');
   if (metadata.taprootFieldCount) addFinding('TAPROOT_POLICY_UNCHECKED', 'warn', 'Taproot metadata is present. Script paths, control blocks, and spending policy are outside this inspection.');
   return metadata;
@@ -206,6 +222,10 @@ export function analyzePsbt({ psbt: payload, intent: rawIntent }) {
     if (input.nonWitnessUtxo) {
       try {
         const transaction = Transaction.fromBuffer(input.nonWitnessUtxo);
+        if (!equalBytes(transaction.toBuffer(), input.nonWitnessUtxo)) {
+          addFinding('INVALID_PREV_TRANSACTION', 'block', 'The supplied previous transaction uses a non-canonical serialization.', { inputIndex: index });
+          invalid = true;
+        }
         if (!equalBytes(transaction.getHash(), transactionInput.hash)) {
           addFinding('PREV_TXID_MISMATCH', 'block', 'The supplied previous transaction does not match this input outpoint.', { inputIndex: index });
           invalid = true;
@@ -315,7 +335,7 @@ export function analyzePsbt({ psbt: payload, intent: rawIntent }) {
 /** Explicit allowlist export. No address, script, outpoint, public key, or raw PSBT is exported. */
 export function redactReport(report) {
   const summaryKeys = ['inputCount', 'outputCount', 'totalInputSats', 'totalOutputSats', 'feeSats', 'maxFeeSats', 'feeSource', 'feeChainVerified', 'declaredPaymentCount', 'paymentGroupCount', 'paymentOutputCount', 'changeOutputCount', 'unexpectedOutputCount', 'blockCount', 'warningCount'];
-  const metadataKeys = ['globalXpubCount', 'bip32DerivationCount', 'taprootDerivationCount', 'proprietaryFieldCount', 'unknownFieldCount', 'signatureFieldCount', 'taprootFieldCount', 'explicitSighashCount'];
+  const metadataKeys = ['globalXpubCount', 'bip32DerivationCount', 'taprootDerivationCount', 'proprietaryFieldCount', 'unknownFieldCount', 'signatureFieldCount', 'taprootFieldCount', 'explicitSighashCount', 'proofOfReservesCommitmentCount'];
   return {
     schemaVersion: report.schemaVersion, redacted: true, network: report.network, status: report.status,
     summary: Object.fromEntries(summaryKeys.map(key => [key, report.summary[key]])),

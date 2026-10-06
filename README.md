@@ -1,6 +1,6 @@
 # SatsGuard
 
-Offline Bitcoin PSBT intent preflight for humans and agents. Built for BOSS Battle 2026 by Prakhar Singh with OpenAI Codex AI assistance.
+Offline Bitcoin PSBT intent preflight for humans and CLI workflows. Prepared for CodeStorm 2026: FutureForge by Prakhar Singh with OpenAI Codex AI assistance.
 
 A proposed transaction can have a plausible fee and still pay the wrong recipient. SatsGuard compares a real BIP174 PSBT v0 against an explicit payment policy. It shows every output, checks exact payment totals and an absolute fee cap, flags privacy metadata and exports a redacted report. It never signs, broadcasts, reads keys or contacts a chain API.
 
@@ -62,7 +62,7 @@ Amounts must be decimal strings of whole satoshis. The network is `bitcoin` or `
 - A result is a comparison with declared intent, **not approval to sign**.
 - Input values are supplied PSBT claims. Previous transaction hashes/output indexes and conflicting UTXO fields are checked for internal consistency; chain existence, ownership and unspent status are unverified.
 - No signature verification, script execution, Taproot spending-policy validation, final fee-rate calculation, dust/relay policy, wallet integration or mainnet transaction testing.
-- PSBT v0 only. Unsupported versions, malformed maps, duplicate keys, trailing data and nonminimal length encodings are rejected.
+- PSBT v0 only. Unsupported versions, malformed maps, duplicate keys, trailing data and nonminimal map, unsigned-transaction and witness-UTXO length encodings are rejected. Opaque metadata and Taproot policy values are not fully format-validated.
 - Analysis runs in browser memory. No analytics, remote fonts, remote APIs, local storage or payload uploads. Hosting still sees ordinary page requests.
 - The redacted export excludes raw payloads, addresses, scripts, outpoints, public keys and derivation values. Amounts, transaction shape, field-presence counts and deterministic observations remain. This is not an anonymity guarantee.
 - The app observes metadata; it does not sanitize or alter the original PSBT. Treat PSBT files as sensitive even when unsigned.
@@ -79,10 +79,12 @@ Run `npm test` for the committed tests. They cover exact satoshi accounting, mal
 
 ## Originality and attribution
 
-New UI, policy engine, fixtures, tests and documentation were built on October 5, 2026 within the BOSS Battle event window. Git commits reflect actual development order; no backdating. OpenAI Codex generated and reviewed code on Prakhar Singh's behalf; AI assistance is disclosed in the submission and UI.
+The original UI, policy engine, fixtures, tests and documentation were built on October 5, 2026 while preparing for BOSS Battle. That project was never submitted to BOSS Battle. This CodeStorm entry reuses the full October 5 prototype, then adds parser and metadata inspection fixes, fresh verification, and event-specific documentation. Both development dates fall within CodeStorm's August 1–October 15 window. Git commits reflect actual development order; no backdating. OpenAI Codex generated and reviewed code on Prakhar Singh's behalf. AI assistance is disclosed; no AI model is integrated into the product.
 
 Protocol parsing is reused from **bitcoinjs-lib 7.0.1** (MIT). Build tooling: **Vite 7.3.6** (MIT). Transitive dependencies retain their own licenses. Primary references: [BIP174](https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki), [BIP371](https://github.com/bitcoin/bips/blob/master/bip-0371.mediawiki), and [bitcoinjs-lib](https://github.com/bitcoinjs/bitcoinjs-lib).
 
 SatsGuard's original source is available under the MIT license in `LICENSE`.
+
+Judge downloads and reproduction steps are in [docs/offline-release.md](docs/offline-release.md). The existing GitHub Pages URL redirects through an unrelated account custom domain and is not advertised as a working live demo.
 
 This is a small, reviewable prototype. It has not been professionally audited or used to process real funds.

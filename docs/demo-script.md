@@ -2,7 +2,7 @@
 
 Actual app captures and actual CLI output, using synthetic testnet fixtures. No live cursor or fabricated interaction. Captions are burned into the video. Narration uses macOS Samantha; AI-assisted prototype and AI narration are disclosed on every frame.
 
-### 00:00:00,000 — SatsGuard · BOSS Battle 2026
+### 00:00:00,000 — SatsGuard · CodeStorm FutureForge
 
 A Bitcoin proposal can have a plausible fee and still pay the wrong person. SatsGuard compares a partially signed Bitcoin transaction with the payment you meant to make. This AI-assisted prototype was built for Prakhar Singh. These are actual app captures using synthetic testnet fixtures.
 

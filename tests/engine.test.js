@@ -26,6 +26,21 @@ function mutatePsbt(mutator) {
   return psbt.toBase64();
 }
 
+function nonminimalByte(bytes, position) {
+  assert.ok(bytes[position] < 0xfd, 'This synthetic field has a one-byte CompactSize.');
+  return Buffer.concat([bytes.subarray(0, position), Buffer.from([0xfd, bytes[position], 0]), bytes.subarray(position + 1)]);
+}
+
+function rewriteFixtureUnsignedTransaction(transform) {
+  const bytes = Buffer.from(base.psbt, 'base64');
+  // The deterministic fixture begins with a one-byte unsigned-transaction key and length.
+  assert.deepEqual([...bytes.subarray(5, 7)], [1, 0]);
+  assert.ok(bytes[7] < 0xfd);
+  const changed = transform(bytes.subarray(8, 8 + bytes[7]));
+  assert.ok(changed.length < 0xfd);
+  return Buffer.concat([bytes.subarray(0, 7), Buffer.from([changed.length]), changed, bytes.subarray(8 + bytes[7])]).toString('base64');
+}
+
 test('synthetic matched proposal uses exact sats and passes only declared checks', () => {
   const report = analyze();
   assert.equal(report.status, 'checks-passed');
@@ -71,6 +86,38 @@ test('malformed encodings, malformed maps, truncation, and trailing bytes are re
   rejects(() => analyze(Buffer.concat([bytes, Buffer.from([0])]).toString('base64')), 'INVALID_PSBT');
   const nonminimal = Buffer.concat([bytes.subarray(0, 5), Buffer.from([0xfd, 1, 0]), bytes.subarray(6)]);
   rejects(() => analyze(nonminimal.toString('base64')), 'INVALID_PSBT');
+});
+
+test('nonminimal counts and script lengths inside the unsigned transaction are rejected', () => {
+  // Version is four bytes; this fixture has one empty-script input and two P2WPKH outputs.
+  for (const position of [4, 41, 46, 55]) {
+    const payload = rewriteFixtureUnsignedTransaction(transaction => nonminimalByte(transaction, position));
+    assert.equal(Psbt.fromBase64(payload).txOutputs[0].value, 50000n, 'Upstream still decodes the mutated proposal.');
+    rejects(() => analyze(payload), 'INVALID_PSBT');
+  }
+});
+
+test('nonminimal script length inside a witness UTXO is rejected', () => {
+  const bytes = Buffer.from(base.psbt, 'base64');
+  const inputStart = 9 + bytes[7];
+  assert.deepEqual([...bytes.subarray(inputStart, inputStart + 2)], [1, 1]);
+  const lengthPosition = inputStart + 2;
+  const valueStart = inputStart + 3;
+  const valueEnd = valueStart + bytes[lengthPosition];
+  const changedValue = nonminimalByte(bytes.subarray(valueStart, valueEnd), 8);
+  const payload = Buffer.concat([bytes.subarray(0, lengthPosition), Buffer.from([changedValue.length]), changedValue, bytes.subarray(valueEnd)]).toString('base64');
+  assert.equal(Psbt.fromBase64(payload).data.inputs[0].witnessUtxo.value, 100000n);
+  rejects(() => analyze(payload), 'INVALID_PSBT');
+});
+
+test('valid map ordering is preserved as a permitted representation', () => {
+  const bytes = Buffer.from(base.psbt, 'base64');
+  // Unknown global field precedes UNSIGNED_TX; map order is not transaction serialization.
+  const reordered = Buffer.concat([bytes.subarray(0, 5), Buffer.from([1, 0x50, 1, 0x11]), bytes.subarray(5)]);
+  const report = analyze(reordered.toString('base64'));
+  assert.equal(report.summary.feeSats, '1000');
+  assert.equal(report.status, 'review');
+  assert.ok(codes(report).includes('UNKNOWN_METADATA'));
 });
 
 test('PSBT v2 is explicitly rejected before v0 parsing and v0 tx version 2 remains accepted', () => {
@@ -196,6 +243,32 @@ test('non-witness UTXO amount is used only after txid and vout match', () => {
   assert.ok(codes(analyze(missingVout)).includes('PREV_OUTPUT_MISSING'));
 });
 
+test('noncanonical previous transaction data is blocked without computing a fee', () => {
+  const previous = previousTransaction();
+  const noncanonical = nonminimalByte(Buffer.from(previous.toBuffer()), 4);
+  const psbt = buildPsbt({ inputs: [{ hash: previous.getHash(), index: 0, nonWitnessUtxo: noncanonical }], outputs: [
+    { address: DEMO_ADDRESSES.payment, amountSats: '50000' },
+    { address: DEMO_ADDRESSES.change, amountSats: '49000' },
+  ] });
+  const report = analyze(psbt);
+  assert.equal(report.status, 'blocked');
+  assert.ok(codes(report).includes('INVALID_PREV_TRANSACTION'));
+  assert.equal(report.summary.totalInputSats, null);
+  assert.equal(report.summary.feeSats, null);
+});
+
+test('canonical previous transactions with witness data remain accepted', () => {
+  const previous = previousTransaction();
+  previous.setWitness(0, [Uint8Array.of(0x51)]);
+  const psbt = buildPsbt({ inputs: [{ hash: previous.getHash(), index: 0, nonWitnessUtxo: previous.toBuffer() }], outputs: [
+    { address: DEMO_ADDRESSES.payment, amountSats: '50000' },
+    { address: DEMO_ADDRESSES.change, amountSats: '49000' },
+  ] });
+  const report = analyze(psbt);
+  assert.equal(report.status, 'checks-passed');
+  assert.equal(report.summary.feeSats, '1000');
+});
+
 test('both UTXO forms must agree on amount and script', () => {
   const previous = previousTransaction();
   const spec = { inputs: [{ hash: previous.getHash(), valueSats: '100000', nonWitnessUtxo: previous.toBuffer() }], outputs: [
@@ -227,6 +300,21 @@ test('metadata and explicit nondefault sighash produce scoped review warnings', 
   assert.ok(codes(report).includes('PROPRIETARY_METADATA'));
   assert.ok(codes(report).includes('UNKNOWN_METADATA'));
   assert.equal(JSON.stringify(redactReport(report)).includes('private-note'), false);
+});
+
+test('proof-of-reserves commitments are counted by presence, warned about, and never exported', () => {
+  for (const commitment of ['synthetic-private-commitment', '']) {
+    // The upstream updater rejects empty strings by truthiness; its decoder accepts the field.
+    const payload = mutatePsbt(psbt => { psbt.data.inputs[0].porCommitment = commitment; });
+    const report = analyze(payload);
+    assert.equal(report.status, 'review');
+    assert.equal(report.metadata.proofOfReservesCommitmentCount, 1);
+    assert.ok(codes(report).includes('POR_COMMITMENT_METADATA'));
+    const exported = redactReport(report);
+    assert.equal(exported.metadata.proofOfReservesCommitmentCount, 1);
+    assert.equal(Object.hasOwn(exported.inputs[0], 'porCommitment'), false);
+    if (commitment) assert.equal(JSON.stringify(exported).includes(commitment), false);
+  }
 });
 
 test('a single missing input amount prevents total fee computation across multiple inputs', () => {
