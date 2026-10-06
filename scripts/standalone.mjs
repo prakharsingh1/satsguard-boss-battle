@@ -14,4 +14,7 @@ await mkdir('publication', { recursive: true });
 await writeFile('publication/index.html', output);
 await copyFile('public/guide.html', 'publication/guide.html');
 await copyFile('public/demo.html', 'publication/demo.html');
-console.log('Standalone publication/index.html prepared; application needs no asset requests.');
+await mkdir('demo', { recursive: true });
+await copyFile('publication/index.html', 'demo/index.html');
+await copyFile('publication/guide.html', 'demo/guide.html');
+console.log('Standalone publication/index.html and demo/index.html prepared; application needs no asset requests.');

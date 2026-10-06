@@ -14,9 +14,11 @@ npm test
 npm run dev
 ```
 
-Open the localhost URL printed by Vite. Production build: `npm run build`. The standalone version can be opened directly from `publication/index.html` after `npm run standalone`; `publication/guide.html` is its field guide.
+For the prebuilt current v0.2 app, download this repository’s source ZIP, extract it and open `demo/index.html`. No app installation or build is required; its JavaScript, CSS and icon are embedded. `demo/guide.html` is included beside it. The raw HTML download is served as text: save it as `index.html` before opening locally.
 
-The publication package includes the standalone app, guide, captioned demo, source ZIP and actual Git history bundle. Open its `index.html` directly. To run the CLI or tests, unpack `satsguard-source.zip` and run the commands above from the extracted `satsguard` directory. The source documentation is included in that ZIP.
+For source development, open the localhost URL printed by Vite. Production build: `npm run build`. To regenerate the standalone app, run `npm run standalone`; this refreshes `demo/index.html` and `demo/guide.html` as well as the local `publication` copies. The commands above reproduce the source tests and CLI.
+
+The separately prepared release package and captioned video are not advertised as published downloads while the CodeStorm release remains a draft.
 
 ## Four reproducible examples
 
@@ -85,6 +87,6 @@ Protocol parsing is reused from **bitcoinjs-lib 7.0.1** (MIT). Build tooling: **
 
 SatsGuard's original source is available under the MIT license in `LICENSE`.
 
-Judge downloads and reproduction steps are in [docs/offline-release.md](docs/offline-release.md). The existing GitHub Pages URL redirects through an unrelated account custom domain and is not advertised as a working live demo.
+Judge evaluation uses the current prebuilt app in `demo/index.html` and the repository source ZIP. Release packaging steps are in [docs/offline-release.md](docs/offline-release.md); that release remains unpublished. The existing GitHub Pages URL redirects through an unrelated account custom domain and is not advertised as a working live demo.
 
 This is a small, reviewable prototype. It has not been professionally audited or used to process real funds.
